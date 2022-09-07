@@ -183,7 +183,7 @@ app.post('/add', function(req, res) {
                         }
                         console.log(tags);
                         db.collection('documents').insertOne({ _id: parseInt(req.body.numbers), name: solvedac.titleKo, tearbig: tearbigtemp, tearsmall: tearsmalltemp, answer: req.body.answer, testcase: req.body.testcase, tags: tags }, async function(err, result) {
-                            await res.redirect('/');
+                            await res.redirect('/alldic');
                         });
                     } else {
                         return res.status(400).send("<h1>400</h1><br><h4>그러한 문제는 없습니다.</h4>");
@@ -329,7 +329,7 @@ app.put('/edit', async function(req, res) {
                     return res.status(500).send("<h1>500</h1><br><h4>값을 업데이트 하지 못하였습니다. 서버 오류 발생</h4>");
                 } else {
                     console.log("업데이트 되었습니다");
-                    await res.redirect('/');
+                    await res.redirect('/alldic');
                 }
             })
         } else {
@@ -343,7 +343,7 @@ app.post('/finder', function(req, res) {
     if (req.body.searcher != '') {
         res.redirect('/find/' + req.body.searcher);
     } else {
-        res.redirect('/');
+        return res.status(404).send("<h1>404</h1><br><h4>그런 값이 없습니다.</h4>");
     }
 })
 
@@ -388,14 +388,25 @@ app.post('/addcon', function(req, res) {
                         return res.status(400).send("<h1>400</h1><br><h4>올바른 값이 아닙니다.</h4>");
                     }
                     solvedac = JSON.parse(solvedac);
-                    if (solvedac.count == 1) {
-                        console.log(solvedac.items[0].displayNames[0].name);
-                        db.collection('concept').insertOne({ _id: req.body.conceptid, koid: solvedac.items[0].displayNames[0].name, conception: req.body.conception, code: req.body.conceptcode }, async function(err, result) {
-                            await res.redirect('/allcon');
-                        });
-                    } else {
+                    if (solvedac.count == 0) {
                         return res.status(400).send("<h1>400</h1><br><h4>그러한 개념은 없거나 비슷한 개념아이디가 존재합니다. 개념아이디를 다시 한번 확인하여 주시기 바랍니다. </h4>");
                     }
+                    var find = 0;
+                    for (var i = 0; i < solvedac.items.length; i++) {
+                        console.log(solvedac.items[i].key);
+                        if (solvedac.items[i].key == req.body.conceptid) {
+                            db.collection('concept').insertOne({ _id: req.body.conceptid, koid: solvedac.items[i].displayNames[0].name, conception: req.body.conception, code: req.body.conceptcode }, async function(err, result) {
+                                await res.redirect('/allcon');
+                            });
+                            find = 1;
+                            break;
+                        }
+                    }
+                    if (find == 0) {
+                        return res.status(400).send("<h1>400</h1><br><h4>그러한 개념은 없거나 비슷한 개념아이디가 존재합니다. 개념아이디를 다시 한번 확인하여 주시기 바랍니다. </h4>");
+                    }
+
+
                 });
             } else {
                 return res.status(400).send("<h1>400</h1><br><h4>이미 있는 값입니다.</h4>");
@@ -459,18 +470,28 @@ app.put('/editcon', async function(req, res) {
         }
         solvedac = JSON.parse(solvedac);
         console.log(solvedac.count);
-        if (solvedac.count == 1) {
-            console.log(3);
-            db.collection("concept").updateOne({ _id: req.body.conceptid }, { $set: { koid: solvedac.items[0].displayNames[0].name, conception: req.body.conception, code: req.body.conceptcode } }, async function(err, result) {
-                if (err) {
-                    return res.status(500).send("<h1>500</h1><br><h4>값을 업데이트 하지 못하였습니다. 서버 오류 발생</h4>");
-                } else {
-                    console.log("업데이트 되었습니다");
-                    await res.redirect('/allcon');
-                }
-            })
-        } else {
-            return res.status(404).send("<h1>400</h1><br><h4>그러한 개념은 없습니다.</h4>");
+        if (solvedac.count == 0) {
+            return res.status(400).send("<h1>400</h1><br><h4>그러한 개념은 없거나 비슷한 개념아이디가 존재합니다. 개념아이디를 다시 한번 확인하여 주시기 바랍니다. </h4>");
+        }
+        var find = 0;
+        for (var i = 0; i < solvedac.items.length; i++) {
+            console.log(solvedac.items[i].key);
+            if (solvedac.items[i].key == req.body.conceptid) {
+                console.log(3);
+                db.collection("concept").updateOne({ _id: req.body.conceptid }, { $set: { koid: solvedac.items[0].displayNames[0].name, conception: req.body.conception, code: req.body.conceptcode } }, async function(err, result) {
+                    if (err) {
+                        return res.status(500).send("<h1>500</h1><br><h4>값을 업데이트 하지 못하였습니다. 서버 오류 발생</h4>");
+                    } else {
+                        console.log("업데이트 되었습니다");
+                        await res.redirect('/allcon');
+                    }
+                })
+                find = 1;
+                break;
+            }
+        }
+        if (find == 0) {
+            return res.status(400).send("<h1>400</h1><br><h4>그러한 개념은 없거나 비슷한 개념아이디가 존재합니다. 개념아이디를 다시 한번 확인하여 주시기 바랍니다. </h4>");
         }
     });
 })
